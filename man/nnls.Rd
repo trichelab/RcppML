@@ -4,7 +4,16 @@
 \alias{nnls}
 \title{Non-negative least squares}
 \usage{
-nnls(a, b, cd_maxit = 100L, cd_tol = 1e-08, L1 = 0, L2 = 0, upper_bound = 0)
+nnls(
+  a,
+  b,
+  cd_maxit = 100L,
+  cd_tol = 0.00000001,
+  fast_nnls = FALSE,
+  L1 = 0,
+  L2 = 0,
+  PE = 0
+)
 }
 \arguments{
 \item{a}{symmetric positive definite matrix giving coefficients of the linear system}

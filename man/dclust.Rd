@@ -8,7 +8,7 @@ dclust(
   A,
   min_samples,
   min_dist = 0,
-  tol = 1e-05,
+  tol = 0.00001,
   maxit = 100,
   nonneg = TRUE,
   seed = NULL
