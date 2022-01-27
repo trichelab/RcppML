@@ -8,7 +8,7 @@ nnls(
   a,
   b,
   cd_maxit = 100L,
-  cd_tol = 1e-08,
+  cd_tol = 0.00000001,
   fast_nnls = FALSE,
   L1 = 0,
   L2 = 0,

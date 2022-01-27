@@ -11,7 +11,7 @@ lnmf(
   data,
   k_wh,
   k_uv,
-  tol = 1e-04,
+  tol = 0.0001,
   maxit = 100,
   L1 = c(0, 0),
   L2 = c(0, 0),

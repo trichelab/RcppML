@@ -3,22 +3,23 @@
 #' @description Find an "optimal" rank for a Non-Negative Matrix Factorization using cross-validation. Returns a \code{data.frame} with class \code{nmfCrossValidate}. Plot results using the \code{plot} S3 method.
 #' 
 #' @details 
-#' Two algorithms are available for cross-validation and can be selected using the \code{method} parameter:
+#' Two algorithms are available for cross-validation and can be selected using the \code{method} parameter.
 #'
 #' 1. **Bi-cross-validation**: Data is split into an equally-sized 2x2 grid (A1, A2, B1, and B2). Data is trained on A1 and projected to A2 to B2 where the mean squared error of the model on B2 is measured.
 #' 2. **Cost of bipartite matching** between independent replicates. Samples are partitioned into two sets and independently factorized, then correlation between factors in both \code{w} models is computed, factors are matched using bipartite matching on a cosine similarity cost matrix, and the mean cost of matched factors is returned.
 #' 
 #' @inheritParams nmf
 #' @param k array of factorization ranks to test
-#' @param method algorithm to use for cross-validation: "\code{predict}" = bi-cross-validation on equally sized feature/sample subsets, "\code{impute}" = MSE of missing value imputation, "\code{robust}" = mean cost of bipartite matching between models trained on equally sized non-overlapping sample sets.
+#' @param method algorithm to use for cross-validation: "\code{predict}" = bi-cross-validation on equally sized feature/sample subsets, "\code{impute}" = MSE of missing value imputation.
 #' @param reps number of independent replicates to run
 #' @param n for \code{method = "impute"} and \code{"perturb"}, fraction of values to handle as missing
+#' @param fn optional function to apply when computing MSE on the results
 #' @param ... parameters to \code{RcppML::nmf}, not including \code{data} or \code{k}
 #' @return \code{data.frame} with columns \code{rep}, \code{k}, and \code{value}, where \code{value} depends on the \code{method} selected (i.e. MSE, cost of bipartite matching)
 #' @md
 #' @seealso \code{\link{nmf}}
 #' @export
-crossValidate <- function(data, k, method = "impute", reps = 5, n = 0.05, ...) {
+crossValidate <- function(data, k, method = "impute", reps = 5, n = 0.2, fn = NULL, ...) {
   verbose <- getOption("RcppML.verbose")
   options("RcppML.verbose" = FALSE)
   
@@ -104,8 +105,14 @@ crossValidate <- function(data, k, method = "impute", reps = 5, n = 0.05, ...) {
         w2 <- nmf(data[, -samples], rank, mask = mask_w2, ...)$w
         value <- bipartiteMatch(1 - cosine(w1, w2))$cost / rank
       } else if(method == "impute"){
+        # usually a sensible default 
         m <- nmf(data, rank, mask = mask_matrix, ...)
         value <- evaluate(m, data, mask = mask_matrix, missing_only = TRUE)
+        if (!is.null(fn)) {
+          fn_value <- .fn_mse(data, m, fn)
+        } else {
+          fn_value <- NA_integer_
+        }
       } else if(method == "perturb") {
         m <- nmf(data, rank, ...)
         data@x[ind] <- ind_vals
@@ -116,13 +123,29 @@ crossValidate <- function(data, k, method = "impute", reps = 5, n = 0.05, ...) {
           data@x[ind] <- 0
         }
       }
-      results[[length(results) + 1]] <- c(rep, rank, value)
+      if (!is.null(fn)) {
+        results[[length(results) + 1]] <- c(rep, rank, value)
+      } else {
+        results[[length(results) + 1]] <- c(rep, rank, value, fn_value)
+      }
     }
   }
   results <- data.frame(do.call(rbind, results))
-  colnames(results) <- c("rep", "k", "value")
+  if (!is.null(fn)) { 
+    colnames(results) <- c("rep", "k", "value", "fn_value")
+  } else { 
+    colnames(results) <- c("rep", "k", "value")
+  }
   class(results) <- c("nmfCrossValidate", "data.frame")
   results$rep <- as.factor(results$rep)
   options("RcppML.verbose" = verbose)
   return(results)
 }
+
+
+# helper fn for transformed MSE if requested
+.fn_mse <- function(data, m, fn) .mse(fn(data), fn(m@w %*% m@h))
+
+
+# helper fn for transformed MSE if requested
+.mse <- function(X, Xi) mean(na.rm=TRUE, (X - Xi)**2)

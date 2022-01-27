@@ -1,8 +1,8 @@
 Package: RcppML
 Type: Package
 Title: Rcpp Machine Learning Library
-Version: 0.5.4
-Date: 2021-27-12
+Version: 0.5.5
+Date: 2022-27-01
 Authors@R: person("Zach", "DeBruine", 
     email = "zacharydebruine@gmail.com", 
     role = c("aut", "cre"), 

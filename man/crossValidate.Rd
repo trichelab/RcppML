@@ -5,7 +5,7 @@
 \alias{plot.nmfCrossValidate}
 \title{Cross-validation for NMF}
 \usage{
-crossValidate(data, k, method = "impute", reps = 5, n = 0.05, ...)
+crossValidate(data, k, method = "impute", reps = 5, n = 0.2, fn = NULL, ...)
 
 \method{plot}{nmfCrossValidate}(x, ...)
 }
@@ -14,11 +14,13 @@ crossValidate(data, k, method = "impute", reps = 5, n = 0.05, ...)
 
 \item{k}{array of factorization ranks to test}
 
-\item{method}{algorithm to use for cross-validation: "\code{predict}" = bi-cross-validation on equally sized feature/sample subsets, "\code{impute}" = MSE of missing value imputation, "\code{robust}" = mean cost of bipartite matching between models trained on equally sized non-overlapping sample sets.}
+\item{method}{algorithm to use for cross-validation: "\code{predict}" = bi-cross-validation on equally sized feature/sample subsets, "\code{impute}" = MSE of missing value imputation.}
 
 \item{reps}{number of independent replicates to run}
 
 \item{n}{for \code{method = "impute"} and \code{"perturb"}, fraction of values to handle as missing}
+
+\item{fn}{optional function to apply when computing MSE on the results}
 
 \item{...}{parameters to \code{RcppML::nmf}, not including \code{data} or \code{k}}
 
@@ -31,7 +33,7 @@ crossValidate(data, k, method = "impute", reps = 5, n = 0.05, ...)
 Find an "optimal" rank for a Non-Negative Matrix Factorization using cross-validation. Returns a \code{data.frame} with class \code{nmfCrossValidate}. Plot results using the \code{plot} S3 method.
 }
 \details{
-Two algorithms are available for cross-validation and can be selected using the \code{method} parameter:
+Two algorithms are available for cross-validation and can be selected using the \code{method} parameter.
 \enumerate{
 \item \strong{Bi-cross-validation}: Data is split into an equally-sized 2x2 grid (A1, A2, B1, and B2). Data is trained on A1 and projected to A2 to B2 where the mean squared error of the model on B2 is measured.
 \item \strong{Cost of bipartite matching} between independent replicates. Samples are partitioned into two sets and independently factorized, then correlation between factors in both \code{w} models is computed, factors are matched using bipartite matching on a cosine similarity cost matrix, and the mean cost of matched factors is returned.

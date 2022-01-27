@@ -1,4 +1,5 @@
 #' @rdname summary-nmf-method
+#' @import ggplot2 
 #' @export
 #' @param x \code{nmfSummary} object, the result of calling \code{summary} on an \code{nmf} object
 #' @method plot nmfSummary
