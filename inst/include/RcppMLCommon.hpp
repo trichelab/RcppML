@@ -33,9 +33,8 @@
 #define EIGEN_INITIALIZE_MATRICES_BY_ZERO
 #endif
 
-//[[Rcpp::depends(RcppSparse)]]
-#ifndef RCPPSPARSE_H
-#include <RcppSparse.h>
+#ifndef RcppML_sparseMatrix
+#include <RcppML/sparseMatrix.hpp>
 #endif
 
 //[[Rcpp::depends(RcppEigen)]]
@@ -45,6 +44,10 @@
 
 #ifndef RcppML_bits
 #include <RcppML/bits.hpp>
+#endif
+
+#ifndef RcppML_rng
+#include <RcppML/rng.hpp>
 #endif
 
 #endif

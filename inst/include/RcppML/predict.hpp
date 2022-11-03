@@ -5,6 +5,19 @@
 // This source code is subject to the terms of the GNU
 // Public License v. 2.0.
 
+/* 5/10/2022
+ * This approach to calculating w * w.transpose() significantly reduces compute time
+ *
+ * template <typename T>
+ * Eigen::Matrix<T, -1, -1> AAt(Eigen::Matrix<T, -1, -1> A){
+ *   Eigen::Matrix<T, -1, -1> a = Eigen::Matrix<T, -1, -1>::Zero(A.rows(), A.rows());
+ *   a.selfadjointView<Eigen::Lower>().rankUpdate(A);
+ *   a.triangularView<Eigen::Upper>() = a.transpose();
+ *   return a;
+ * }
+ *
+ */
+
 #ifndef RcppML_predict
 #define RcppML_predict
 
@@ -15,7 +28,8 @@
 // solve for 'h' given sparse 'A' in 'A = wh'
 void predict(RcppSparse::Matrix A, RcppSparse::Matrix mask_A, RcppSparse::Matrix& mask_h, const Eigen::MatrixXd& w,
              Eigen::MatrixXd& h, const double L1, const double L2, const int threads, const bool mask_zeros,
-             const bool masking_A, const bool masking_h) {
+             const bool masking_A, const bool masking_h, const double upper_bound) {
+    // set upper_bound = 0 to not impose an upper bound
     if (!mask_zeros) {
         // calculate "a"
         //  * calculate "a" for updates of all columns of "h"
@@ -83,7 +97,11 @@ void predict(RcppSparse::Matrix A, RcppSparse::Matrix mask_A, RcppSparse::Matrix
             }
 
             // solve nnls equations
-            (num_masked == 0) ? c_nnls(a, b, h, i) : c_nnls(a_i, b, h, i);
+            if (upper_bound > 0) {
+                (num_masked == 0) ? c_bnnls(a, b, h, i, upper_bound) : c_bnnls(a_i, b, h, i, upper_bound);
+            } else {
+                (num_masked == 0) ? c_nnls(a, b, h, i) : c_nnls(a_i, b, h, i);
+            }
         }
     } else {  // mask_zeros = true
 #ifdef _OPENMP
@@ -147,15 +165,19 @@ void predict(RcppSparse::Matrix A, RcppSparse::Matrix mask_A, RcppSparse::Matrix
                 for (int k = 0; k < b.size(); ++k)
                     b[k] *= mask_h_i[k];
             }
-            c_nnls(a, b, h, i);
+            if (upper_bound > 0) {
+                c_bnnls(a, b, h, i, upper_bound);
+            } else {
+                c_nnls(a, b, h, i);
+            }
         }
     }
 }
 
-// solve for 'h' given sparse 'A' in 'A = wh'
+// solve for 'h' given dense 'A' in 'A = wh'
 void predict(Eigen::MatrixXd& A, RcppSparse::Matrix& m, RcppSparse::Matrix& l, const Eigen::MatrixXd& w,
              Eigen::MatrixXd& h, const double L1, const double L2,
-             const unsigned int threads, const bool mask_zeros, const bool mask, const bool link) {
+             const unsigned int threads, const bool mask_zeros, const bool mask, const bool link, const double upper_bound = 0) {
     if (!mask_zeros && !mask) {
         // GENERAL RANK IMPLEMENTATION
         Eigen::MatrixXd a = w * w.transpose();
@@ -185,7 +207,7 @@ void predict(Eigen::MatrixXd& A, RcppSparse::Matrix& m, RcppSparse::Matrix& l, c
             // if unconstrained solution contains negative values, refine by NNLS coordinate descent
             if ((h.col(i).array() < 0).any()) {
                 b -= a * h.col(i);
-                c_nnls(a, b, h, i);
+                (upper_bound > 0) ? c_bnnls(a, b, h, i, upper_bound) : c_nnls(a, b, h, i);
             }
         }
     } else if (mask_zeros) {
@@ -223,8 +245,7 @@ void predict(Eigen::MatrixXd& A, RcppSparse::Matrix& m, RcppSparse::Matrix& l, c
                     }
                     if (L1 != 0) b.array() -= L1;
                 }
-
-                c_nnls(a, b, h, i);
+                (upper_bound > 0) ? c_bnnls(a, b, h, i, upper_bound) : c_nnls(a, b, h, i);
             }
         }
     } else if (mask) {
@@ -268,7 +289,7 @@ void predict(Eigen::MatrixXd& A, RcppSparse::Matrix& m, RcppSparse::Matrix& l, c
             }
 
             // solve system with least squares
-            c_nnls(a_, b, h, i);
+            (upper_bound > 0) ? c_bnnls(a_, b, h, i, upper_bound) : c_nnls(a_, b, h, i);
         }
     }
 }

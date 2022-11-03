@@ -1,11 +1,9 @@
-pandoc: 2.7.3
-pkgdown: 1.6.1
+pandoc: '2.18'
+pkgdown: 2.0.6
 pkgdown_sha: ~
 articles:
+  annotating_nmf_models: annotating_nmf_models.html
   getting_started: getting_started.html
   robust_nmf: robust_nmf.html
-last_built: 2021-10-22T11:07Z
-urls:
-  reference: https://zdebruine.github.io/RcppML/reference
-  article: https://zdebruine.github.io/RcppML/articles
+last_built: 2022-09-26T13:09Z
 
